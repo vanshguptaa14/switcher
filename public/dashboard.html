@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Dashboard</title>
+    <style>
+        :root {
+            --neon-green: #39ff14;
+            --dark-bg: #0a0a0a;
+            --gradient: linear-gradient(135deg, #0a0a0a 0%, #1a2e1a 100%);
+            --card-bg: rgba(20, 20, 20, 0.9);
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--gradient);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .dashboard-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(57, 255, 20, 0.2);
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid rgba(57, 255, 20, 0.3);
+        }
+
+        h2 { text-align: center; color: var(--neon-green); text-transform: uppercase; letter-spacing: 2px; }
+
+        /* Tabs UI */
+        .tabs-header {
+            display: flex;
+            background: #111;
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 20px;
+        }
+
+        .tab-trigger {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: #888;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .tab-trigger.active {
+            background: var(--neon-green);
+            color: black;
+        }
+
+        .tab-content { display: none; padding: 10px 0; }
+        .tab-content.active { display: block; animation: fadeIn 0.5s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Circular Toggle Buttons */
+        .switch-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+
+        .device-control { text-align: center; }
+
+        .circle-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: 0.4s;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .circle-btn.on {
+            background: var(--neon-green);
+            color: black;
+            box-shadow: 0 0 20px var(--neon-green);
+        }
+
+        .circle-btn.off {
+            background: #ff3131;
+            box-shadow: 0 0 20px #ff3131;
+        }
+
+        /* Input Styling */
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        input, select {
+            background: #111;
+            border: 1px solid #333;
+            color: var(--neon-green);
+            padding: 12px;
+            border-radius: 8px;
+            flex: 1;
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 2px solid var(--neon-green);
+            color: var(--neon-green);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .save-btn:hover {
+            background: var(--neon-green);
+            color: black;
+        }
+
+        .logout {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        #status {
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-card">
+    <h2>System Core</h2>
+
+    <div class="tabs-header">
+        <button class="tab-trigger active" onclick="switchTab(event, 'manual')">Manual</button>
+        <button class="tab-trigger" onclick="switchTab(event, 'detect')">Detect</button>
+    </div>
+
+    <!-- Tab 1: Manual Switching -->
+    <div id="manual" class="tab-content active">
+        <div class="switch-container">
+            <div class="device-control">
+                <button id="devA" class="circle-btn off" onclick="toggleCircle('devA')">OFF</button>
+                <span>Device A</span>
+            </div>
+            <div class="device-control">
+                <button id="devB" class="circle-btn off" onclick="toggleCircle('devB')">OFF</button>
+                <span>Device B</span>
+            </div>
+        </div>
+        <div id="manual-status" style="margin-top: 15px; text-align: center; font-size: 0.8rem; color: #888;"></div>
+    </div>
+
+    <!-- Tab 2: Detect Switching -->
+    <div id="detect" class="tab-content">
+        <p style="font-size: 0.9rem; color: #888;">Set duration to store timeline data:</p>
+        <div class="input-row">
+            <input type="number" id="timeValue" placeholder="Value" min="1">
+            <select id="timeUnit">
+                <option value="seconds">Seconds</option>
+                <option value="minutes">Minutes</option>
+            </select>
+        </div>
+        <button class="save-btn" onclick="saveToMongo()">Save Configuration</button>
+        <div id="status" style="margin-top: 15px; text-align: center; font-size: 0.8rem;"></div>
+    </div>
+
+    <div class="logout" onclick="logout()">Terminate Session (Logout)</div>
+</div>
+
+<script>
+    // Security Check: Redirect if not logged in
+    const userName = localStorage.getItem('userName');
+    if (!userName) {
+        window.location.href = 'login.html';
+    }
+
+    // Tab Switching Logic
+    function switchTab(evt, tabId) {
+        const contents = document.querySelectorAll('.tab-content');
+        const triggers = document.querySelectorAll('.tab-trigger');
+
+        contents.forEach(content => content.classList.remove('active'));
+        triggers.forEach(trigger => trigger.classList.remove('active'));
+
+        document.getElementById(tabId).classList.add('active');
+        evt.currentTarget.classList.add('active');
+    }
+
+    // Circular Toggle Logic with MongoDB Sync
+    async function toggleCircle(id) {
+        const btn = document.getElementById(id);
+        const statusDisplay = document.getElementById('manual-status');
+        let newStatus = "";
+
+        // 1. Update UI Immediately
+        if (btn.classList.contains('on')) {
+            btn.classList.replace('on', 'off');
+            btn.innerText = "OFF";
+            newStatus = "OFF";
+        } else {
+            btn.classList.replace('off', 'on');
+            btn.innerText = "ON";
+            newStatus = "ON";
+        }
+
+        // 2. Sync with MongoDB
+        try {
+            statusDisplay.innerText = `Syncing ${id}...`;
+            const response = await fetch('/update-device-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    deviceId: id, 
+                    status: newStatus, 
+                    name: userName 
+                })
+            });
+
+            if (response.ok) {
+                statusDisplay.innerText = `${id} is now ${newStatus}`;
+                statusDisplay.style.color = "var(--neon-green)";
+            } else {
+                statusDisplay.innerText = "Sync Failed!";
+                statusDisplay.style.color = "#ff3131";
+            }
+        } catch (err) {
+            console.error("Manual sync error:", err);
+            statusDisplay.innerText = "Connection Error.";
+            statusDisplay.style.color = "#ff3131";
+        }
+    }
+
+    // Save Timeline Data to MongoDB
+    async function saveToMongo() {
+        const value = document.getElementById('timeValue').value;
+        const unit = document.getElementById('timeUnit').value;
+        const statusDiv = document.getElementById('status');
+
+        if (!value) {
+            alert("Please enter a value.");
+            return;
+        }
+
+        try {
+            statusDiv.innerText = "Saving configuration...";
+            const response = await fetch('/save-timeline', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ value, unit })
+            });
+
+            if (response.ok) {
+                statusDiv.style.color = "var(--neon-green)";
+                statusDiv.innerText = `Data Synced: ${value} ${unit}`;
+            } else {
+                statusDiv.style.color = "#ff3131";
+                statusDiv.innerText = "Sync Failed.";
+            }
+        } catch (err) {
+            console.error("Timeline save error:", err);
+            statusDiv.innerText = "Connection Error.";
+            statusDiv.style.color = "#ff3131";
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('userName');
+        window.location.href = 'login.html';
+    }
+</script>
+
+</body>
+</html>

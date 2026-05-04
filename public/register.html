@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Initialize Core Access - Register</title>
+    <style>
+        :root {
+            --neon-green: #39ff14;
+            --dark-bg: #0a0a0a;
+            --gradient: linear-gradient(135deg, #0a0a0a 0%, #1a2e1a 100%);
+            --card-bg: rgba(20, 20, 20, 0.9);
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--gradient);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(57, 255, 20, 0.2);
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid rgba(57, 255, 20, 0.3);
+        }
+
+        h2 { 
+            text-align: center; 
+            color: var(--neon-green); 
+            margin-bottom: 1.5rem; 
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .input-group { margin-bottom: 1rem; }
+        
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-size: 0.8rem; 
+            color: var(--neon-green);
+            text-transform: uppercase;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: var(--neon-green);
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--neon-green);
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.4);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
+
+        .btn-send { 
+            background: transparent; 
+            color: var(--neon-green); 
+            border: 2px solid var(--neon-green);
+        }
+
+        .btn-send:hover { 
+            background: var(--neon-green); 
+            color: black; 
+            box-shadow: 0 0 20px var(--neon-green);
+        }
+
+        .btn-verify { 
+            background: var(--neon-green); 
+            color: black; 
+            box-shadow: 0 0 15px var(--neon-green);
+        }
+
+        .hidden { display: none; }
+
+        .status-msg {
+            text-align: center;
+            font-size: 0.85rem;
+            margin-top: 15px;
+            min-height: 1.2rem;
+            font-weight: bold;
+        }
+
+        .login-link {
+            display: block;
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            color: #666;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .login-link:hover {
+            color: var(--neon-green);
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Initialize Profile</h2>
+
+    <!-- Step 1: User Details -->
+    <div id="step1">
+        <div class="input-group">
+            <label>Full Identity Name</label>
+            <input type="text" id="regName" placeholder="Operator Name">
+        </div>
+        <div class="input-group">
+            <label>Communication Email</label>
+            <input type="email" id="regEmail" placeholder="email@system.com">
+        </div>
+        <div class="input-group">
+            <label>Access Password</label>
+            <input type="password" id="regPass" placeholder="••••••••">
+        </div>
+        <button class="btn-send" onclick="sendOTP()">Transmit OTP</button>
+    </div>
+
+    <!-- Step 2: OTP Verification -->
+    <div id="step2" class="hidden">
+        <div class="input-group">
+            <label>6-Digit Decryption Code</label>
+            <input type="text" id="regOTP" placeholder="Enter OTP">
+        </div>
+        <button class="btn-verify" onclick="verifyAndRegister()">Authorize & Register</button>
+        <button style="background:none; color:#666; font-size:0.7rem; margin-top:5px;" onclick="location.reload()">[ Re-enter Info ]</button>
+    </div>
+
+    <p id="status" class="status-msg"></p>
+
+    <a href="login.html" class="login-link">Existing Operator? Sign In</a>
+</div>
+
+<script>
+    const status = document.getElementById('status');
+
+    async function sendOTP() {
+        const name = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPass').value;
+
+        if (!name || !email || !password) {
+            status.innerText = "Error: All fields required.";
+            status.style.color = "#ff3131";
+            return;
+        }
+
+        status.innerText = "Transmitting verification packet...";
+        status.style.color = "white";
+
+        try {
+            const response = await fetch('/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+
+            if (response.ok) {
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+                status.innerText = "OTP Segment Sent to Inbox.";
+                // FIXED: Wrapped CSS variable in a string
+                status.style.color = "var(--neon-green)";
+            } else {
+                status.innerText = "Transmission failed. Retry.";
+                status.style.color = "#ff3131";
+            }
+        } catch (err) {
+            status.innerText = "Network Error: System offline.";
+            status.style.color = "#ff3131";
+        }
+    }
+
+    async function verifyAndRegister() {
+        const name = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPass').value;
+        const otp = document.getElementById('regOTP').value;
+
+        if (!otp) {
+            status.innerText = "Error: Decryption code required.";
+            return;
+        }
+
+        try {
+            const response = await fetch('/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password, otp })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert("REGISTRATION COMPLETE. ACCESS GRANTED.");
+                window.location.href = 'login.html';
+            } else {
+                status.innerText = result.message || "Invalid Code.";
+                status.style.color = "#ff3131";
+            }
+        } catch (err) {
+            status.innerText = "Authorization sequence failed.";
+            status.style.color = "#ff3131";
+        }
+    }
+</script>
+
+</body>
+</html>

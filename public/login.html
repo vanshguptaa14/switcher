@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Access - Login</title>
+    <style>
+        :root {
+            --neon-green: #39ff14;
+            --dark-bg: #0a0a0a;
+            --gradient: linear-gradient(135deg, #0a0a0a 0%, #1a2e1a 100%);
+            --card-bg: rgba(20, 20, 20, 0.9);
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--gradient);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(57, 255, 20, 0.2);
+            width: 100%;
+            max-width: 380px;
+            border: 1px solid rgba(57, 255, 20, 0.3);
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--neon-green);
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .input-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            color: var(--neon-green);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: var(--neon-green);
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--neon-green);
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.4);
+        }
+
+        input::placeholder {
+            color: #444;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: transparent;
+            color: var(--neon-green);
+            border: 2px solid var(--neon-green);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background-color: var(--neon-green);
+            color: black;
+            box-shadow: 0 0 20px var(--neon-green);
+        }
+
+        .links-container {
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        .links-container a {
+            color: #666;
+            text-decoration: none;
+            margin: 0 5px;
+            transition: 0.3s;
+        }
+
+        .links-container a:hover {
+            color: var(--neon-green);
+        }
+
+        #error-msg {
+            color: #ff3131;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-top: 10px;
+            min-height: 1.2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h2>Access Core</h2>
+    
+    <div class="input-group">
+        <label for="username">Operator Name</label>
+        <input type="text" id="username" placeholder="IDENT_ID" required>
+    </div>
+
+    <div class="input-group">
+        <label for="password">Security Key</label>
+        <input type="password" id="password" placeholder="••••••••" required>
+    </div>
+
+    <button onclick="handleLogin()">Authorize</button>
+
+    <p id="error-msg"></p>
+
+    <div class="links-container">
+        <a href="reset-password.html">Lost Credentials?</a>
+        <span style="color:#333">|</span>
+        <a href="register.html">Initialize New Account</a>
+    </div>
+</div>
+
+<script>
+    async function handleLogin() {
+        const name = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        const errorDisplay = document.getElementById('error-msg');
+
+        errorDisplay.innerText = "";
+
+        if (!name || !pass) {
+            errorDisplay.innerText = "CRITICAL: Missing credentials.";
+            return;
+        }
+
+        try {
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, password: pass })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                // Save name to localStorage so the dashboard can sync device status properly
+                localStorage.setItem('userName', name);
+                window.location.href = 'dashboard.html';
+            } else {
+                errorDisplay.innerText = "ACCESS DENIED: Unauthorized profile.";
+            }
+        } catch (error) {
+            console.error('Login Error:', error);
+            errorDisplay.innerText = "SYSTEM ERROR: Connection lost.";
+        }
+    }
+
+    document.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            handleLogin();
+        }
+    });
+</script>
+
+</body>
+</html>
